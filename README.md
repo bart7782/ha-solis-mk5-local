@@ -66,6 +66,12 @@ meetsensoren als "niet beschikbaar" worden gemarkeerd (standaard 30).
   overleven ook een herstart van Home Assistant.
 - **Energy Dashboard**: gebruik "Opbrengst vandaag" of "Opbrengst totaal"
   als zonneproductie-bron.
+- **Voorbeeld-dashboard**: in
+  [`examples/solar-dashboard.yaml`](examples/solar-dashboard.yaml) staat een
+  compleet zonne-dashboard (vermogensmeter, opbrengst per dag, verloop,
+  MPPT-strings en netdiagnostiek) dat je via de Raw configuratie-editor kunt
+  plakken. Vervang wel eerst de entity-ID's door die van jouw installatie —
+  zie de toelichting bovenin het bestand.
 - **Frames met een afwijkende indeling** (andere firmware/hardware) worden
   niet stilletjes verkeerd geparsed: elk frame wordt gevalideerd op
   checksum, lengte en plausibiliteit. Afgekeurde frames verschijnen met
