@@ -1,0 +1,138 @@
+# Voorbeeld-dashboard voor Solis MK5 Local.
+#
+# Gebruik: Instellingen > Dashboards > Dashboard toevoegen > "Nieuw dashboard
+# van scratch" > open het > potlood rechtsboven > drie puntjes > "Raw
+# configuratie-editor" > plak dit bestand.
+#
+# Let op: entity-ID's verschillen per installatie. Ze zijn opgebouwd als
+# sensor.<apparaatnaam>_<sensornaam>, beide bepaald door je taal en de naam
+# die je het apparaat geeft. Dit voorbeeld gaat uit van de standaardnaam
+# "Solis inverter" met Nederlandse sensornamen (sensor.solis_inverter_...).
+# Heet jouw apparaat bijv. "Zolder Solar", vervang dan overal
+# "solis_inverter" door "zolder_solar"; staat je HA op Engels, dan heten de
+# sensoren bijv. _power, _energy_today en _energy_total in plaats van
+# _vermogen, _opbrengst_vandaag en _opbrengst_totaal. Controleer je eigen
+# ID's via Ontwikkelaarshulpmiddelen > Statussen (filter op "solis").
+#
+# Tip: pas ook "max: 3600" van de vermogensmeter aan op het piekvermogen
+# van jouw omvormer.
+
+views:
+  - title: Zonne-energie
+    path: zon
+    icon: mdi:solar-power-variant
+    type: sections
+    max_columns: 3
+    sections:
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Nu
+            icon: mdi:solar-power
+          - type: gauge
+            entity: sensor.solis_inverter_vermogen
+            name: Huidig vermogen
+            unit: W
+            min: 0
+            max: 3600
+            needle: true
+            segments:
+              - from: 0
+                color: "#9e9e9e"
+              - from: 200
+                color: "#43a047"
+              - from: 1500
+                color: "#f9a825"
+              - from: 2800
+                color: "#e53935"
+          - type: tile
+            entity: sensor.solis_inverter_omvormertemperatuur
+            name: Temperatuur
+            icon: mdi:thermometer
+            color: red
+          - type: tile
+            entity: sensor.solis_inverter_laatste_update
+            name: Laatste update
+            icon: mdi:clock-check-outline
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Opbrengst
+            icon: mdi:counter
+          - type: tile
+            entity: sensor.solis_inverter_opbrengst_vandaag
+            name: Vandaag
+            icon: mdi:weather-sunny
+            color: amber
+          - type: tile
+            entity: sensor.solis_inverter_opbrengst_totaal
+            name: Totaal
+            icon: mdi:sigma
+            color: green
+          - type: statistics-graph
+            title: Opbrengst per dag (30 dagen)
+            entities:
+              - sensor.solis_inverter_opbrengst_vandaag
+            stat_types:
+              - change
+            period: day
+            days_to_show: 30
+            chart_type: bar
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Verloop vandaag
+            icon: mdi:chart-areaspline
+          - type: history-graph
+            entities:
+              - entity: sensor.solis_inverter_vermogen
+                name: Vermogen
+            hours_to_show: 24
+          - type: history-graph
+            entities:
+              - entity: sensor.solis_inverter_omvormertemperatuur
+                name: Temperatuur
+            hours_to_show: 24
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: MPPT-strings
+            icon: mdi:solar-panel-large
+          - type: history-graph
+            title: Stroom per string
+            entities:
+              - entity: sensor.solis_inverter_dc_stroom_string_1
+                name: String 1
+              - entity: sensor.solis_inverter_dc_stroom_string_2
+                name: String 2
+            hours_to_show: 24
+          - type: history-graph
+            title: Spanning per string
+            entities:
+              - entity: sensor.solis_inverter_dc_spanning_string_1
+                name: String 1
+              - entity: sensor.solis_inverter_dc_spanning_string_2
+                name: String 2
+            hours_to_show: 24
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Net (diagnostiek)
+            icon: mdi:transmission-tower
+          - type: tile
+            entity: sensor.solis_inverter_netspanning
+            name: Netspanning
+          - type: tile
+            entity: sensor.solis_inverter_netfrequentie
+            name: Netfrequentie
+          - type: history-graph
+            title: Netspanning (24 u)
+            entities:
+              - entity: sensor.solis_inverter_netspanning
+                name: Spanning
+            hours_to_show: 24
