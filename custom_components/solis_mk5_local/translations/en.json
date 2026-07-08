@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Solis MK5 Local",
+        "description": "Choose the TCP port this integration listens on. Point a free Remote Server slot (e.g. Server C) of your Ginlong/Solis stick at your Home Assistant IP with this port, connection type TCP.",
+        "data": {
+          "port": "TCP port"
+        }
+      }
+    },
+    "error": {
+      "port_in_use": "This port is already in use, choose another one."
+    },
+    "abort": {
+      "already_configured": "A listener on this port is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Solis MK5 Local options",
+        "data": {
+          "stale_after_minutes": "Mark measurements unavailable after this many minutes without data"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "power": { "name": "Power" },
+      "energy_today": { "name": "Energy today" },
+      "energy_total": { "name": "Energy total" },
+      "temperature": { "name": "Inverter temperature" },
+      "ac_voltage": { "name": "Grid voltage" },
+      "ac_current": { "name": "Grid current" },
+      "ac_frequency": { "name": "Grid frequency" },
+      "dc_voltage_1": { "name": "DC voltage string 1" },
+      "dc_current_1": { "name": "DC current string 1" },
+      "dc_voltage_2": { "name": "DC voltage string 2" },
+      "dc_current_2": { "name": "DC current string 2" },
+      "last_seen": { "name": "Last update" }
+    }
+  }
+}

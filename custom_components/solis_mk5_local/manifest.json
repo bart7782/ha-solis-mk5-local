@@ -1,12 +1,13 @@
 {
-  "domain": "solis_raw_capture",
-  "name": "Solis Raw Packet Capture (debug tool)",
+  "domain": "solis_mk5_local",
+  "name": "Solis MK5 Local",
   "codeowners": ["@bart7782"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/bart7782/ha-solis-mk5-local",
-  "issue_tracker": "https://github.com/bart7782/ha-solis-mk5-local/issues",
+  "integration_type": "device",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/bart7782/ha-solis-mk5-local/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "1.0.0"
 }

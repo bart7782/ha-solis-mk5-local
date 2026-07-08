@@ -1,5 +1,6 @@
 {
-  "name": "Solis Raw Packet Capture (debug tool)",
+  "name": "Solis MK5 Local",
   "render_readme": true,
-  "content_in_root": false
+  "content_in_root": false,
+  "homeassistant": "2024.6.0"
 }

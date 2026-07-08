@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Solis MK5 Local",
+        "description": "Kies de TCP-poort waarop deze integratie luistert. Wijs een vrij Remote Server-slot (bijv. Server C) van je Ginlong/Solis stick naar het IP-adres van Home Assistant met deze poort, verbindingstype TCP.",
+        "data": {
+          "port": "TCP-poort"
+        }
+      }
+    },
+    "error": {
+      "port_in_use": "Deze poort is al in gebruik, kies een andere."
+    },
+    "abort": {
+      "already_configured": "Er is al een listener op deze poort geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Solis MK5 Local opties",
+        "data": {
+          "stale_after_minutes": "Markeer metingen als niet beschikbaar na dit aantal minuten zonder data"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "power": { "name": "Vermogen" },
+      "energy_today": { "name": "Opbrengst vandaag" },
+      "energy_total": { "name": "Opbrengst totaal" },
+      "temperature": { "name": "Omvormertemperatuur" },
+      "ac_voltage": { "name": "Netspanning" },
+      "ac_current": { "name": "Netstroom" },
+      "ac_frequency": { "name": "Netfrequentie" },
+      "dc_voltage_1": { "name": "DC-spanning string 1" },
+      "dc_current_1": { "name": "DC-stroom string 1" },
+      "dc_voltage_2": { "name": "DC-spanning string 2" },
+      "dc_current_2": { "name": "DC-stroom string 2" },
+      "last_seen": { "name": "Laatste update" }
+    }
+  }
+}
