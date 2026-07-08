@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Solis Raw Packet Capture",
+        "description": "Debug tool: listens on a TCP port and logs the complete raw hex of every packet received, with no protocol assumptions. Point your logger's Server B/C at this port.",
+        "data": {
+          "port": "Listening port"
+        }
+      }
+    }
+  }
+}

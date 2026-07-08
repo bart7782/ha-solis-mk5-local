@@ -1,0 +1,11 @@
+{
+  "domain": "solis_raw_capture",
+  "name": "Solis Raw Packet Capture (debug tool)",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/anthropics",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "0.1.0"
+}
