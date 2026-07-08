@@ -5,14 +5,31 @@ lijn stuurt, zonder enige aanname over headerformaat of paketlengte. Dit
 is een tijdelijk hulpmiddel om data te verzamelen voor het bouwen van een
 op maat gemaakte parser, geen permanente oplossing.
 
-## Installatie
+## Installatie via HACS
+
+Deze repository staat niet in de standaard HACS-lijst, dus voeg 'm toe als
+custom repository:
+
+1. Open HACS in Home Assistant.
+2. Klik rechtsboven op de drie puntjes > "Custom repositories".
+3. Vul bij Repository `https://github.com/bart7782/ha-solis-mk5-local` in
+   en kies als categorie "Integration".
+4. Klik "Add" en zoek daarna naar "Solis Raw Packet Capture" in HACS,
+   en klik "Download".
+5. Herstart Home Assistant.
+6. Ga verder bij "Instellingen > Apparaten en Diensten" hieronder.
+
+## Installatie (handmatig, zonder HACS)
 
 1. Kopieer de map `custom_components/solis_raw_capture` naar de
    `custom_components` map van je Home Assistant configuratie.
 2. Herstart Home Assistant.
-3. Instellingen > Apparaten en Diensten > Integratie toevoegen >
+
+## Instellingen > Apparaten en Diensten
+
+1. Instellingen > Apparaten en Diensten > Integratie toevoegen >
    "Solis Raw Packet Capture".
-4. Vul een vrije poort in, bijvoorbeeld 5658 (moet anders zijn dan de
+2. Vul een vrije poort in, bijvoorbeeld 5658 (moet anders zijn dan de
    poorten die je al gebruikt voor Server A/B).
 
 ## De logger erop wijzen
@@ -47,3 +64,10 @@ Zodra je een paar hex dumps hebt, samen met de bijbehorende bekende
 waarden, kan daarmee een exacte parser gebouwd worden die precies bij
 deze stick/firmware past, in plaats van te gokken op basis van
 andermans hardware.
+
+## Onderhoud (voor HACS)
+
+HACS leest updates uit GitHub releases. Verhoog bij een wijziging de
+`version` in `custom_components/solis_raw_capture/manifest.json` en
+maak een bijpassende git tag + GitHub release aan (bijvoorbeeld `v0.1.0`),
+anders ziet HACS geen nieuwe versie.
