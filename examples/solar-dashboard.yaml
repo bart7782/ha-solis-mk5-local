@@ -17,8 +17,9 @@
 # Tips:
 # - Pas "max: 3600" van de vermogensmeter aan op het piekvermogen van jouw
 #   omvormer.
-# - "Opbrengst per dag" gebruikt langetermijnstatistieken en toont pas data
-#   na de eerste volle dag draaien.
+# - "Opbrengst per dag" berekent de dagproductie uit de "change" van de
+#   totaalteller (langetermijnstatistieken) en toont pas data na de eerste
+#   volle dag draaien.
 
 views:
   - title: Zonne-energie
@@ -85,7 +86,7 @@ views:
           - type: statistics-graph
             title: Opbrengst per dag (30 dagen)
             entities:
-              - sensor.solis_inverter_opbrengst_vandaag
+              - sensor.solis_inverter_opbrengst_totaal
             stat_types:
               - change
             period: day

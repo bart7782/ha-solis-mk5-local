@@ -52,7 +52,7 @@ class SolisMk5ConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors[CONF_PORT] = "port_in_use"
             else:
                 return self.async_create_entry(
-                    title=f"Solis MK5 Local (poort {port})", data=user_input
+                    title=f"Solis MK5 Local (port {port})", data=user_input
                 )
         return self.async_show_form(
             step_id="user",
