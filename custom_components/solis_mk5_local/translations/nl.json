@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Solis MK5 Local",
-        "description": "Kies de TCP-poort waarop deze integratie luistert. Wijs een vrij Remote Server-slot (bijv. Server C) van je Ginlong/Solis stick naar het IP-adres van Home Assistant met deze poort, verbindingstype TCP.",
+        "description": "Kies de TCP-poort waarop deze integratie luistert. Wijs daarna in de webinterface van je Ginlong/Solis stick een vrij Remote Server-slot (bijv. Server C) naar het IP-adres van Home Assistant (Instellingen > Systeem > Netwerk) met deze poort, verbindingstype TCP.",
         "data": {
           "port": "TCP-poort"
         }
@@ -20,6 +20,7 @@
     "step": {
       "init": {
         "title": "Solis MK5 Local opties",
+        "description": "Hoelang de live-meetsensoren hun laatste waarde blijven tonen voordat ze niet-beschikbaar worden. De stick stuurt ongeveer elke 6 minuten, houd dit dus ruim boven de 6. Energietotalen worden nooit beïnvloed en behouden altijd hun waarde.",
         "data": {
           "stale_after_minutes": "Markeer metingen als niet beschikbaar na dit aantal minuten zonder data"
         }

@@ -67,8 +67,46 @@ repository:
    - Connection: TCP
 4. Save and restart the logger. Data will appear within ~6 minutes.
 
+> **Running Home Assistant in Docker?** The chosen port must be published to
+> the host (e.g. `-p 5657:5657`) or the stick cannot reach it. Home Assistant
+> OS and Supervised installs need no extra step.
+
 Via "Options" on the integration you can configure after how many minutes
 of silence the measurement sensors are marked "unavailable" (default 30).
+
+## Troubleshooting
+
+**No data after ~10 minutes?** Work through this list:
+
+1. **Right IP and port?** In the logger's web interface, double-check the
+   Remote Server slot points at your Home Assistant IP and the exact port you
+   entered when adding the integration.
+2. **Free slot used?** Use a slot that isn't already taken by the Solis cloud
+   (typically Server A). Overwriting the cloud slot breaks the app; use a free
+   one (e.g. Server C) instead.
+3. **Same network / reachable?** The stick must be able to open a TCP
+   connection to Home Assistant. Check firewalls and, for Docker, that the
+   port is published (see the note above).
+4. **Logger restarted?** Some loggers only apply Remote Server changes after a
+   reboot. Restart it (or power-cycle the inverter) and wait ~6 minutes.
+5. **Still nothing?** Enable debug logging (below) and look for
+   "Connection opened from ..." lines. If you see connections but no parsed
+   data, the logger likely speaks a different protocol variant — please open
+   an issue using the "Unsupported logger" template.
+
+## Reporting an unsupported logger
+
+If a Repairs entry appears (Settings > System > Repairs) saying the logger
+sends an unrecognised protocol, or connections arrive but no sensors fill in,
+your stick is probably a different generation than the one this was built for.
+That's fixable with a few captured frames:
+
+1. Enable debug logging (see below).
+2. Wait for a couple of pushes so a few frames are logged.
+3. Open an issue with the
+   [Unsupported logger template](https://github.com/bart7782/ha-solis-mk5-local/issues/new?template=unsupported_logger.yml)
+   and paste the hex lines, plus the readings from the logger's own web page
+   at that moment so the byte positions can be checked.
 
 ## Good to know
 

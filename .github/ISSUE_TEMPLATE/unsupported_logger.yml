@@ -1,0 +1,61 @@
+name: Unsupported logger / no data
+description: Your stick connects but sensors stay empty, or an "unrecognised protocol" repair appears
+labels: ["unsupported-logger"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping widen hardware support! This integration was
+        reverse-engineered from one specific stick generation (MK5, `GL17-...`).
+        If yours speaks a slightly different dialect, a few captured frames are
+        usually enough to add support.
+
+        Before filing: confirm the stick actually reaches Home Assistant
+        (see the Troubleshooting section in the README).
+  - type: input
+    id: hardware
+    attributes:
+      label: Logger hardware model
+      description: Printed on the stick, or shown on its web interface (e.g. GL17-07-261-D).
+      placeholder: GL17-...
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Logger firmware version
+      description: From the logger's web interface (e.g. H4.01.51).
+    validations:
+      required: false
+  - type: input
+    id: inverter
+    attributes:
+      label: Inverter model
+      description: The Solis/Ginlong inverter the stick is plugged into.
+    validations:
+      required: false
+  - type: textarea
+    id: hex
+    attributes:
+      label: Rejected frame hex dump(s)
+      description: >
+        Enable debug logging (see the README), wait for a few pushes, and paste
+        the "Unrecognised data frame" / "Received ... bytes" hex lines here.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Known-correct values (optional but very helpful)
+      description: >
+        Readings from the logger's own web page at capture time (power, today's
+        yield, total yield, voltages) so the byte positions can be verified.
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+    validations:
+      required: false

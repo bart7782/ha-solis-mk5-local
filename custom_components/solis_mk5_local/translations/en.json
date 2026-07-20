@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Solis MK5 Local",
-        "description": "Choose the TCP port this integration listens on. Point a free Remote Server slot (e.g. Server C) of your Ginlong/Solis stick at your Home Assistant IP with this port, connection type TCP.",
+        "description": "Choose the TCP port this integration listens on. Then, in your Ginlong/Solis stick's web interface, point a free Remote Server slot (e.g. Server C) at your Home Assistant IP address (Settings > System > Network) using this port, with connection type TCP.",
         "data": {
           "port": "TCP port"
         }
@@ -20,6 +20,7 @@
     "step": {
       "init": {
         "title": "Solis MK5 Local options",
+        "description": "How long the live measurement sensors keep showing their last reading before going unavailable. The stick pushes roughly every 6 minutes, so keep this comfortably above 6. Energy totals are never affected and always keep their value.",
         "data": {
           "stale_after_minutes": "Mark measurements unavailable after this many minutes without data"
         }
