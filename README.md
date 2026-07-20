@@ -15,6 +15,13 @@ The protocol was reverse-engineered from raw captures of a stick with
 hardware `GL17-07-261-D` and firmware `H4.01.51`; all field positions have
 been validated against the logger's own web interface.
 
+<img src="docs/images/ginlong-stick.jpg" alt="Ginlong Technologies Wi-Fi stick logger mounted under the inverter's terminal cover" width="360">
+
+The stick this integration targets: a Ginlong Technologies Wi-Fi logger
+plugged directly into the communication port under the inverter's terminal
+cover, next to the DC switch. If your stick looks like this, it's very
+likely the same protocol.
+
 ## Sensors
 
 | Sensor | Unit | Note |
@@ -92,6 +99,13 @@ of silence the measurement sensors are marked "unavailable" (default 30).
   ```
 
 ## Protocol documentation
+
+<img src="docs/images/solis-inverter-manual.png" alt="Cover of the Solis Single Phase Inverter installation and operation manual" width="280">
+
+Developed and tested against a Solis single-phase grid-tie inverter (the
+manual pictured above), paired with the Ginlong stick shown earlier — this
+is the exact hardware combination the byte map below was reverse-engineered
+from.
 
 For those who want to hack on this themselves: the stick opens a connection
 roughly every 6 minutes and sends one burst with two frames (`0x68 ... 0x16`,
