@@ -24,6 +24,11 @@ likely the same protocol.
 
 ## Sensors
 
+The device page in Home Assistant, showing the live sensors and diagnostics
+this integration exposes:
+
+![Solis MK5 Local device page in Home Assistant showing sensors and diagnostics](docs/images/device-page.png)
+
 | Sensor | Unit | Note |
 |---|---|---|
 | Power | W | current AC power |
