@@ -79,7 +79,10 @@ of silence the measurement sensors are marked "unavailable" (default 30).
 - **Frames with a different layout** (different firmware/hardware) are not
   silently parsed incorrectly: every frame is validated on checksum,
   length and plausibility. Rejected frames appear with a full hex dump in
-  the log — feel free to open an issue with that.
+  the log. If several frames in a row get rejected, the integration raises
+  a Repairs entry (Settings > System > Repairs) so it's clear the connected
+  logger is speaking a variant this integration doesn't recognise, instead
+  of silently doing nothing.
 - Enable debug logging with:
 
   ```yaml
@@ -87,16 +90,6 @@ of silence the measurement sensors are marked "unavailable" (default 30).
     logs:
       custom_components.solis_mk5_local: debug
   ```
-
-## Coming from "Solis Raw Packet Capture"?
-
-Version 1.0.0 replaces the temporary raw-capture debug tool from this repo.
-After updating via HACS:
-
-1. Remove the old "Solis Raw Packet Capture" integration under Settings >
-   Devices & Services.
-2. Restart Home Assistant.
-3. Add "Solis MK5 Local" (reusing the same port is fine).
 
 ## Protocol documentation
 

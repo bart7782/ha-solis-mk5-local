@@ -7,11 +7,12 @@ from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import DOMAIN, INCOMPATIBLE_FRAME_THRESHOLD, ISSUE_INCOMPATIBLE_LOGGER
 from .protocol import is_data_frame, is_info_frame, parse_data_frame, parse_info_frame
 from .server import SolisMk5Server
 
@@ -37,6 +38,7 @@ class SolisMk5Coordinator(DataUpdateCoordinator[dict]):
         self.last_seen: datetime | None = None
         self.server = SolisMk5Server(port, self.handle_frame)
         self._stale_unsub: CALLBACK_TYPE | None = None
+        self._consecutive_rejected = 0
 
     async def _async_update_data(self) -> dict:
         return self.data or {}
@@ -63,12 +65,14 @@ class SolisMk5Coordinator(DataUpdateCoordinator[dict]):
             parsed = parse_data_frame(frame)
             if parsed is None:
                 _LOGGER.warning(
-                    "Unrecognised data frame from %s (please report this "
-                    "with the hex dump below): %s",
-                    peer,
-                    frame.hex(),
+                    "Unrecognised data frame from %s: %s", peer, frame.hex()
                 )
+                self._consecutive_rejected += 1
+                if self._consecutive_rejected >= INCOMPATIBLE_FRAME_THRESHOLD:
+                    self._raise_incompatible_logger_issue()
                 return
+            self._consecutive_rejected = 0
+            ir.async_delete_issue(self.hass, DOMAIN, ISSUE_INCOMPATIBLE_LOGGER)
             self.last_seen = dt_util.utcnow()
             parsed["last_seen"] = self.last_seen
             parsed["raw_hex"] = frame.hex()
@@ -86,6 +90,22 @@ class SolisMk5Coordinator(DataUpdateCoordinator[dict]):
             _LOGGER.debug(
                 "Frame with unknown control code from %s: %s", peer, frame.hex()
             )
+
+    def _raise_incompatible_logger_issue(self) -> None:
+        """Surface a Repairs entry when a logger keeps sending unparseable frames.
+
+        A frame that fails checksum/length/plausibility repeatedly, rather than
+        occasionally, points at a different logger generation or firmware
+        rather than a one-off transmission glitch.
+        """
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            ISSUE_INCOMPATIBLE_LOGGER,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_INCOMPATIBLE_LOGGER,
+        )
 
     def _schedule_stale_check(self) -> None:
         """Re-notify entities once the stale window passes with no new data.

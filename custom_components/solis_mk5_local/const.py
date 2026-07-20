@@ -16,3 +16,9 @@ DEFAULT_STALE_AFTER = 30
 
 # Protect against a peer flooding us with garbage that never frames.
 MAX_BUFFER_SIZE = 4096
+
+# Consecutive rejected data frames before we assume the connected logger
+# speaks an incompatible protocol variant and raise a repair issue about it.
+INCOMPATIBLE_FRAME_THRESHOLD = 5
+
+ISSUE_INCOMPATIBLE_LOGGER = "incompatible_logger"

@@ -26,6 +26,12 @@
       }
     }
   },
+  "issues": {
+    "incompatible_logger": {
+      "title": "Solis logger sends an unrecognised protocol",
+      "description": "Several frames in a row from your Ginlong/Solis stick failed validation. This usually means the connected logger uses a different firmware or hardware revision than this integration was built for, so its data cannot be parsed reliably. Enable debug logging to see the rejected frames as hex dumps in the Home Assistant log."
+    }
+  },
   "entity": {
     "sensor": {
       "power": { "name": "Power" },

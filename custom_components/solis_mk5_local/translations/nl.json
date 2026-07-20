@@ -26,6 +26,12 @@
       }
     }
   },
+  "issues": {
+    "incompatible_logger": {
+      "title": "Solis logger stuurt een onbekend protocol",
+      "description": "Meerdere frames achter elkaar van je Ginlong/Solis stick zijn afgekeurd. Dit betekent meestal dat de aangesloten logger een andere firmware- of hardwareversie gebruikt dan waar deze integratie voor is gebouwd, waardoor de data niet betrouwbaar geparsed kan worden. Zet debug logging aan om de afgekeurde frames als hex dumps in het Home Assistant-log te zien."
+    }
+  },
   "entity": {
     "sensor": {
       "power": { "name": "Vermogen" },
