@@ -1,8 +1,9 @@
 # Solis MK5 Local
 
-> **Note:** All code in this repository was written with AI assistance. I use
-> this integration myself on my own installation. It is based on two other
-> open-source repositories as a starting point (see Credits below).
+> **Note:** All code in this repository was written with AI assistance. I
+> built this for my own use on my own installation, and I'm sharing it in
+> case it's useful to others too. It is based on two other open-source
+> repositories as a starting point (see Credits below).
 
 Local Home Assistant integration for Solis/Ginlong inverters with a Wi-Fi
 stick logger. The stick sends its data directly (over TCP) to Home
