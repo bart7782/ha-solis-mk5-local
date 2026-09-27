@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-09-27
+
+The Remote Server push is now optional, also when adding the integration.
+
+### Added
+- **Set up without the push.** When adding the integration you can fill in
+  the stick's IP address and serial number (the number in its Wi-Fi name
+  `AP_<serial>`). Home Assistant then sends a test request and only adds the
+  integration when the stick answers. Leave both empty to use the push, as
+  before.
+
+### Changed
+- README and setup texts describe both ways: with the push (recommended:
+  nothing to enter, follows the stick to a new IP address, fallback if
+  polling stops) and without it.
+
 ## [2.0.0] - 2026-09-27
 
 Home Assistant now asks the stick for its data every 10 seconds, instead of
@@ -71,5 +87,6 @@ cloud, no polling, no extra hardware.
   use a different frame layout — if yours does, the Repairs entry and the
   "Unsupported logger" issue template explain how to report it.
 
+[2.1.0]: https://github.com/bart7782/ha-solis-mk5-local/releases/tag/v2.1.0
 [2.0.0]: https://github.com/bart7782/ha-solis-mk5-local/releases/tag/v2.0.0
 [1.0.0]: https://github.com/bart7782/ha-solis-mk5-local/releases/tag/v1.0.0

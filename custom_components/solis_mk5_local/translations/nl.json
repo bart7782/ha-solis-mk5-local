@@ -3,14 +3,18 @@
     "step": {
       "user": {
         "title": "Solis MK5 Local",
-        "description": "Kies de TCP-poort waarop deze integratie luistert. Wijs daarna in de webinterface van je Ginlong/Solis stick een vrij Remote Server-slot (bijv. Server C) naar het IP-adres van Home Assistant (Instellingen > Systeem > Netwerk) met deze poort, verbindingstype TCP.",
+        "description": "Home Assistant vraagt de stick elke 10 seconden om verse data. Daarvoor heeft het het IP-adres en serienummer van de stick nodig. Kies een van twee manieren:\n\n**Met push (aanbevolen).** Laat de poort hieronder staan. Wijs in de webinterface van de stick een vrij Remote Server-slot (bijv. Server C) naar het IP-adres van Home Assistant (Instellingen > Systeem > Netwerk) met deze poort, verbindingstype TCP. Laat IP-adres en serienummer leeg: die leert de integratie uit de eerste push van de stick (binnen ~6 minuten), en hij volgt de stick als die een ander IP-adres krijgt.\n\n**Zonder push.** Laat de Remote Server-instellingen van de stick met rust, en vul hieronder zijn IP-adres en serienummer in. Het serienummer is het getal in de naam van het eigen wifinetwerk van de stick, AP_<serienummer>. Geef de stick een vast IP-adres in je router.",
         "data": {
-          "port": "TCP-poort"
+          "port": "TCP-poort voor de push",
+          "host": "IP-adres van de stick (alleen zonder push)",
+          "logger_serial": "Serienummer van de stick (alleen zonder push)"
         }
       }
     },
     "error": {
-      "port_in_use": "Deze poort is al in gebruik, kies een andere."
+      "port_in_use": "Deze poort is al in gebruik, kies een andere.",
+      "host_and_serial": "Vul zowel het IP-adres als het serienummer van de stick in, of laat ze allebei leeg.",
+      "cannot_connect": "De stick gaf geen antwoord op TCP-poort 8899. Controleer het IP-adres en het serienummer, en of Home Assistant de stick kan bereiken. Vlak na een van zijn eigen pushes zwijgt de stick zo'n 20 seconden; klopt alles, probeer het dan gewoon nog eens."
     },
     "abort": {
       "already_configured": "Er is al een listener op deze poort geconfigureerd."

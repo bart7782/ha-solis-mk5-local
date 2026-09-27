@@ -3,14 +3,18 @@
     "step": {
       "user": {
         "title": "Solis MK5 Local",
-        "description": "Choose the TCP port this integration listens on. Then, in your Ginlong/Solis stick's web interface, point a free Remote Server slot (e.g. Server C) at your Home Assistant IP address (Settings > System > Network) using this port, with connection type TCP.",
+        "description": "Home Assistant asks the stick for fresh data every 10 seconds. For that it needs the stick's IP address and serial number. Choose one of two ways:\n\n**With push (recommended).** Keep the port below. In the stick's web interface, point a free Remote Server slot (e.g. Server C) at your Home Assistant IP address (Settings > System > Network) with this port, connection type TCP. Leave IP address and serial number empty: they are learned from the stick's first push (within ~6 minutes), and followed when the stick gets a new IP address.\n\n**Without push.** Leave the stick's Remote Server settings alone, and fill in its IP address and serial number below. The serial number is the number in the stick's own Wi-Fi network name, AP_<serial>. Give the stick a fixed IP address in your router.",
         "data": {
-          "port": "TCP port"
+          "port": "TCP port for the push",
+          "host": "Stick IP address (only without push)",
+          "logger_serial": "Stick serial number (only without push)"
         }
       }
     },
     "error": {
-      "port_in_use": "This port is already in use, choose another one."
+      "port_in_use": "This port is already in use, choose another one.",
+      "host_and_serial": "Fill in both the IP address and the serial number of the stick, or leave both empty.",
+      "cannot_connect": "The stick did not answer on TCP port 8899. Check the IP address and the serial number, and that Home Assistant can reach the stick. Right after one of its own pushes the stick is silent for about 20 seconds; if everything looks right, just try again."
     },
     "abort": {
       "already_configured": "A listener on this port is already configured."

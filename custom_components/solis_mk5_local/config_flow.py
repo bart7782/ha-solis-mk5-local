@@ -24,9 +24,35 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_STALE_AFTER,
     DOMAIN,
+    POLL_PORT,
+    POLL_TIMEOUT,
 )
+from .poller import async_request_frames
+from .protocol import is_data_frame, parse_data_frame
 
 PORT_SELECTOR = vol.All(vol.Coerce(int), vol.Range(min=1, max=65535))
+SERIAL_SELECTOR = vol.All(vol.Coerce(int), vol.Range(min=1, max=0xFFFFFFFF))
+
+# The stick does not answer for about 20 seconds after each of its own
+# pushes, so one silent try proves nothing. Three tries span that window.
+_PROBE_TRIES = 3
+_PROBE_PAUSE = 5
+
+
+async def _stick_answers(host: str, logger_serial: int) -> bool:
+    """True when the stick at `host` answers a poll with a valid data frame."""
+    for attempt in range(_PROBE_TRIES):
+        if attempt:
+            await asyncio.sleep(_PROBE_PAUSE)
+        try:
+            frames = await async_request_frames(
+                host, POLL_PORT, logger_serial, POLL_TIMEOUT
+            )
+        except (OSError, TimeoutError):
+            continue
+        if any(is_data_frame(f) and parse_data_frame(f) for f in frames):
+            return True
+    return False
 
 
 async def _port_is_free(port: int) -> bool:
@@ -40,7 +66,13 @@ async def _port_is_free(port: int) -> bool:
 
 
 class SolisMk5ConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Ask for the TCP port the stick's Remote Server slot points at."""
+    """Set up with the stick's push, or with its IP address and serial.
+
+    The push (a Remote Server slot on the stick) is optional. With it, the
+    integration learns the stick's address and serial by itself. Without it,
+    they are asked here and checked with a test poll; they end up in the
+    options, where they can be changed later.
+    """
 
     VERSION = 1
 
@@ -50,20 +82,33 @@ class SolisMk5ConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             port = user_input[CONF_PORT]
+            host = (user_input.get(CONF_HOST) or "").strip()
+            serial = user_input.get(CONF_LOGGER_SERIAL)
             await self.async_set_unique_id(f"port_{port}")
             self._abort_if_unique_id_configured()
             if not await _port_is_free(port):
                 errors[CONF_PORT] = "port_in_use"
+            elif bool(host) != bool(serial):
+                errors["base"] = "host_and_serial"
+            elif host and not await _stick_answers(host, serial):
+                errors["base"] = "cannot_connect"
             else:
                 return self.async_create_entry(
-                    title=f"Solis MK5 Local (port {port})", data=user_input
+                    title=f"Solis MK5 Local (port {port})",
+                    data={CONF_PORT: port},
+                    options={CONF_HOST: host, CONF_LOGGER_SERIAL: serial} if host else {},
                 )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_PORT, default=DEFAULT_PORT): PORT_SELECTOR,
+                vol.Optional(CONF_HOST): str,
+                vol.Optional(CONF_LOGGER_SERIAL): SERIAL_SELECTOR,
+            }
+        )
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
         return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {vol.Required(CONF_PORT, default=DEFAULT_PORT): PORT_SELECTOR}
-            ),
-            errors=errors,
+            step_id="user", data_schema=schema, errors=errors
         )
 
     @staticmethod
@@ -113,7 +158,7 @@ class SolisMk5OptionsFlow(OptionsFlow):
                     vol.Optional(
                         CONF_LOGGER_SERIAL,
                         description={"suggested_value": options.get(CONF_LOGGER_SERIAL)},
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=0xFFFFFFFF)),
+                    ): SERIAL_SELECTOR,
                 }
             ),
             description_placeholders={

@@ -7,9 +7,10 @@
 
 Local Home Assistant integration for Solis/Ginlong inverters with a Wi-Fi
 stick logger — **no cloud, no extra hardware**. Home Assistant asks the
-stick for fresh data every 10 seconds, and the stick also pushes its data to
-Home Assistant every ~6 minutes through a free "Remote Server" slot. The
-Solis cloud and app keep working as usual through their own slot.
+stick for fresh data every 10 seconds. Optionally, the stick also pushes its
+data to Home Assistant every ~6 minutes through a free "Remote Server" slot;
+that push is a fallback, and saves you from entering the stick's IP address
+and serial number. The Solis cloud and app keep working as usual either way.
 
 The protocol was reverse-engineered from raw captures of a stick with
 hardware `GL17-07-261-D` and firmware `H4.01.51`; all field positions have
@@ -59,13 +60,18 @@ while it is on.
   does not answer; the integration simply keeps the previous reading. When
   the stick switches off with the inverter at night, polling slows down to
   once every 5 minutes until the stick is back.
-- **Push (fallback, and how the stick is found).** The stick's own push
-  still arrives every ~6 minutes. Every push carries the stick's serial
-  number and comes from its current IP address, which is all polling needs.
-  So there is nothing to configure: polling starts at the first push, and
-  when the stick gets a new IP address, the next push tells the integration.
-  If polling ever stops working, the push keeps the sensors going (at the
-  old ~6 minute pace).
+- **Push (optional: fallback, and how the stick is found).** If you point
+  a Remote Server slot of the stick at Home Assistant, the stick pushes its
+  data every ~6 minutes. Every push carries the stick's serial number and
+  comes from its current IP address, which is all polling needs. So with
+  the push there is nothing else to configure: polling starts at the first
+  push, and when the stick gets a new IP address, the next push tells the
+  integration. If polling ever stops working, the push keeps the sensors
+  going (at the old ~6 minute pace).
+- **Without the push** you enter the stick's IP address and serial number
+  once, when adding the integration. Everything else works the same, except
+  that the integration cannot follow the stick to a new IP address, and
+  there is no fallback if polling stops.
 
 ## Installation via HACS
 
@@ -88,20 +94,38 @@ repository:
 
 ## Configuration
 
-1. Settings > Devices & Services > Add Integration > "Solis MK5 Local".
-2. Enter a free TCP port, for example 5657 (must differ from any ports
-   already in use).
-3. Go to your Solis logger's web interface, Advanced > Remote server, and
+Settings > Devices & Services > Add Integration > "Solis MK5 Local". Then
+choose one of two ways. Both give the same sensors and the same 10-second
+updates.
+
+### With the push (recommended)
+
+1. Keep the TCP port the form suggests (5657), or pick another free one.
+   Leave the stick's IP address and serial number empty, and submit.
+2. Go to your Solis logger's web interface, Advanced > Remote server, and
    set a **free** slot (for example Server C) to:
    - IP address: the IP address of your Home Assistant server
-   - Port: the same port as in step 2
+   - Port: the same port as in step 1
    - Connection: TCP
-4. Save and restart the logger. Data will appear within ~6 minutes, and
-   every 10 seconds from then on.
+3. Save and restart the logger. The first push arrives within ~6 minutes;
+   from then on the data comes in every 10 seconds.
 
 > **Running Home Assistant in Docker?** The chosen port must be published to
 > the host (e.g. `-p 5657:5657`) or the stick cannot reach it. Home Assistant
 > OS and Supervised installs need no extra step.
+
+### Without the push
+
+1. Keep the TCP port as it is (nothing will connect to it).
+2. Fill in the stick's **IP address** (see your router's list of devices)
+   and its **serial number**: the number in the name of the stick's own
+   Wi-Fi network, `AP_<serial>` (for example `AP_617108918` → `617108918`).
+3. Submit. Home Assistant sends the stick a test request and only adds the
+   integration when the stick answers; data arrives within seconds.
+
+Give the stick a fixed IP address (a DHCP reservation in your router): the
+integration cannot find it again by itself after an address change. You can
+change the address later in the integration's options.
 
 Via "Options" on the integration you can set:
 
@@ -109,19 +133,25 @@ Via "Options" on the integration you can set:
 - **Staleness window**: after how many minutes without any data the
   measurement sensors are marked "unavailable" (default 30, so the push
   alone can still carry them).
-- **Stick IP address and serial number**: only for a stick that does not
-  push to Home Assistant. The serial is the number in the stick's own Wi-Fi
-  network name (`AP_<serial>`). Leave both empty when the push is set up: a
-  filled-in IP address is not followed when the stick moves to a new one.
-  The form shows what the integration learned from the pushes.
+- **Stick IP address and serial number**: what you entered when setting up
+  without the push. With the push, leave both empty: a filled-in IP address
+  is not followed when the stick moves to a new one. The form shows what the
+  integration learned from the pushes.
 
-Give the stick a fixed IP address (a DHCP reservation in your router) if you
-can. It is not required, but it avoids a few minutes without polling after
-an address change.
+A fixed IP address for the stick is a good idea with the push too. It is not
+required there, but it avoids a few minutes without polling after an address
+change.
 
 ## Troubleshooting
 
-**No data after ~10 minutes?** Work through this list:
+**Set up without the push, and the form says the stick does not answer?**
+Check the IP address and serial number, and that Home Assistant can reach
+TCP port 8899 of the stick. Shortly after each of its own pushes the stick
+is silent for about 20 seconds, so if everything looks right, simply submit
+again.
+
+**Set up with the push, and no data after ~10 minutes?** Work through this
+list:
 
 1. **Right IP and port?** In the logger's web interface, double-check the
    Remote Server slot points at your Home Assistant IP and the exact port you
@@ -137,8 +167,8 @@ an address change.
 5. **Only every ~6 minutes, not every 10 seconds?** Then polling does not
    work. Download the diagnostics (Settings > Devices & services > Solis MK5
    Local > three dots > Download diagnostics) and look at `poll_target` and
-   `poll_stats`. `poll_target` empty: no push has arrived yet since the
-   integration started, and no IP address and serial are set in the options.
+   `poll_stats`. `poll_target` empty: no push has arrived yet, and no IP
+   address and serial are set.
    Many unanswered polls: check that TCP port 8899 of the stick is reachable
    from Home Assistant.
 6. **Still nothing?** Enable debug logging (below) and look for
@@ -154,7 +184,7 @@ your stick is probably a different generation than the one this was built for.
 That's fixable with a few captured frames:
 
 1. Enable debug logging (see below).
-2. Wait for a couple of pushes so a few frames are logged.
+2. Wait a minute or so, until a few frames are logged.
 3. Open an issue with the
    [Unsupported logger template](https://github.com/bart7782/ha-solis-mk5-local/issues/new?template=unsupported_logger.yml)
    and paste the hex lines, plus the readings from the logger's own web page
