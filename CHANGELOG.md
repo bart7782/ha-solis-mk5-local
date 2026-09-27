@@ -14,6 +14,10 @@ The Remote Server push is now optional, also when adding the integration.
   `AP_<serial>`). Home Assistant then sends a test request and only adds the
   integration when the stick answers. Leave both empty to use the push, as
   before.
+- **The stick's own serial number wins.** Every answer and every push carries
+  it; the integration uses that one from then on, so a mistyped serial does
+  not stick. (The reference stick sometimes answers a wrong serial right
+  after a request with the right one, which is how this came to light.)
 
 ### Changed
 - README and setup texts describe both ways: with the push (recommended:

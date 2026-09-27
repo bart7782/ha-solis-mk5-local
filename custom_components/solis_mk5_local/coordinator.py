@@ -129,9 +129,16 @@ class SolisMk5Coordinator(DataUpdateCoordinator[dict]):
 
     @property
     def poll_target(self) -> tuple[str, int] | None:
-        """Where to poll: configured values first, else what pushes taught us."""
+        """Where to poll, and with which serial.
+
+        Host: the configured one if set, else the address pushes come from.
+        Serial: the one the stick itself reported in its last push or poll
+        answer, else the configured one. The configured serial is only
+        needed for the very first request; after that the stick's own
+        number wins, so a typo cannot stick.
+        """
         host = self._host_override or self._learned.get("host")
-        serial = self._serial_override or self._learned.get("logger_serial")
+        serial = self._learned.get("logger_serial") or self._serial_override
         if host and serial:
             return host, int(serial)
         return None
@@ -159,8 +166,7 @@ class SolisMk5Coordinator(DataUpdateCoordinator[dict]):
                 return False
             self._consecutive_rejected = 0
             ir.async_delete_issue(self.hass, DOMAIN, ISSUE_INCOMPATIBLE_LOGGER)
-            if source == SOURCE_PUSH:
-                self._learn_from_push(frame, peer)
+            self._learn(frame, peer, source)
             self.last_seen = dt_util.utcnow()
             self.last_source = source
             parsed["last_seen"] = self.last_seen
@@ -185,16 +191,21 @@ class SolisMk5Coordinator(DataUpdateCoordinator[dict]):
         return False
 
     @callback
-    def _learn_from_push(self, frame: bytes, peer: str) -> None:
-        """Remember the stick's address and serial so it can be polled."""
-        serial = logger_serial_from_frame(frame)
-        host = peer.rsplit(":", 1)[0] if ":" in peer else None
-        if not serial or not host:
-            return
-        learned = {"host": host, "logger_serial": serial}
+    def _learn(self, frame: bytes, peer: str, source: str) -> None:
+        """Remember the stick's serial, and from a push also its address."""
+        learned = dict(self._learned)
+        if serial := logger_serial_from_frame(frame):
+            learned["logger_serial"] = serial
+        if source == SOURCE_PUSH and ":" in peer:
+            learned["host"] = peer.rsplit(":", 1)[0]
         if learned == self._learned:
             return
-        _LOGGER.info("Stick %s pushes from %s; polling it there", serial, host)
+        _LOGGER.info(
+            "Stick %s at %s (learned from a %s)",
+            learned.get("logger_serial"),
+            learned.get("host") or self._host_override,
+            source,
+        )
         self._learned = learned
         self._store.async_delay_save(lambda: self._learned, 1)
         self._wake.set()

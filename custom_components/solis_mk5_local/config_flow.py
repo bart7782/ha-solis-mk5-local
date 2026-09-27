@@ -28,7 +28,7 @@ from .const import (
     POLL_TIMEOUT,
 )
 from .poller import async_request_frames
-from .protocol import is_data_frame, parse_data_frame
+from .protocol import is_data_frame, logger_serial_from_frame, parse_data_frame
 
 PORT_SELECTOR = vol.All(vol.Coerce(int), vol.Range(min=1, max=65535))
 SERIAL_SELECTOR = vol.All(vol.Coerce(int), vol.Range(min=1, max=0xFFFFFFFF))
@@ -39,8 +39,14 @@ _PROBE_TRIES = 3
 _PROBE_PAUSE = 5
 
 
-async def _stick_answers(host: str, logger_serial: int) -> bool:
-    """True when the stick at `host` answers a poll with a valid data frame."""
+async def _stick_serial(host: str, logger_serial: int) -> int | None:
+    """Poll the stick at `host`; return the serial in its answer, or None.
+
+    The answer carries the stick's own serial, which is what gets stored:
+    a stick that also answers a slightly wrong serial (the reference stick
+    sometimes does, right after a request with the right one) would
+    otherwise end up configured with the wrong number.
+    """
     for attempt in range(_PROBE_TRIES):
         if attempt:
             await asyncio.sleep(_PROBE_PAUSE)
@@ -50,9 +56,10 @@ async def _stick_answers(host: str, logger_serial: int) -> bool:
             )
         except (OSError, TimeoutError):
             continue
-        if any(is_data_frame(f) and parse_data_frame(f) for f in frames):
-            return True
-    return False
+        for frame in frames:
+            if is_data_frame(frame) and parse_data_frame(frame):
+                return logger_serial_from_frame(frame) or logger_serial
+    return None
 
 
 async def _port_is_free(port: int) -> bool:
@@ -90,7 +97,7 @@ class SolisMk5ConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors[CONF_PORT] = "port_in_use"
             elif bool(host) != bool(serial):
                 errors["base"] = "host_and_serial"
-            elif host and not await _stick_answers(host, serial):
+            elif host and (serial := await _stick_serial(host, serial)) is None:
                 errors["base"] = "cannot_connect"
             else:
                 return self.async_create_entry(
