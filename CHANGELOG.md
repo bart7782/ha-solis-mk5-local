@@ -4,11 +4,21 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2026-09-27
+## [2.0.0] - 2026-09-27
 
 Home Assistant now asks the stick for its data every 10 seconds, instead of
 waiting for the push every ~6 minutes. Nothing to configure: existing
 installs keep their entities, entity ids and history.
+
+### Breaking
+- The `raw_frame_hex` attribute of "Last update" is gone; the raw frame is in
+  the diagnostics download now. "Last update" carries `source` (`poll` or
+  `push`) instead. With a frame every 10 seconds, the hex cost a database row
+  each time.
+- Temperature, grid and string readings are written at most once a minute,
+  so their history is coarser than every frame. They change on nearly every
+  frame, and at full speed they would add tens of thousands of database rows
+  a day.
 
 ### Added
 - **Polling** on TCP port 8899, every 10 seconds by default (0 = off). The
@@ -24,11 +34,6 @@ installs keep their entities, entity ids and history.
   stick is off at night) and speeds up again at the first frame.
 
 ### Changed
-- Diagnostic readings (temperature, grid and string values) are written at
-  most once a minute, to keep the database small at the new pace.
-- "Last update" carries `source` (`poll` or `push`) as its attribute instead
-  of the raw frame hex, which moved to the diagnostics download: with a new
-  frame every 10 seconds, that attribute cost a database row each time.
 - `iot_class` is now `local_polling`.
 
 ## [1.0.0] - 2026-07-20
@@ -66,5 +71,5 @@ cloud, no polling, no extra hardware.
   use a different frame layout — if yours does, the Repairs entry and the
   "Unsupported logger" issue template explain how to report it.
 
-[1.1.0]: https://github.com/bart7782/ha-solis-mk5-local/releases/tag/v1.1.0
+[2.0.0]: https://github.com/bart7782/ha-solis-mk5-local/releases/tag/v2.0.0
 [1.0.0]: https://github.com/bart7782/ha-solis-mk5-local/releases/tag/v1.0.0
