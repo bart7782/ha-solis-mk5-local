@@ -11,6 +11,16 @@ sends one burst containing two frames:
 - A frame's total size is <len> + 14 (12 header bytes + checksum + end byte).
 - Checksum is the sum of all bytes after the start byte up to (excluding)
   the checksum itself, modulo 256.
+- The logger serial is a 32-bit little-endian number, sent twice. It is the
+  number in the stick's own Wi-Fi network name (AP_<serial>).
+
+The same stick also answers requests on TCP port 8899. It replies to
+
+    68 02 40 30 <logger serial x2> 01 00 <checksum> 16      (16 bytes)
+
+with the same data frame it pushes, followed by a short acknowledgement frame
+(control code 51 f0, ASCII "DATA SEND IS OK"). That request is the one other
+tools for these sticks use as well (Omnik/Ginlong "Wi-Fi kit" loggers).
 
 Data frame layout (byte offsets from frame start, all values big-endian):
 
@@ -47,6 +57,7 @@ FRAME_OVERHEAD = 14
 
 CONTROL_DATA = b"\x51\xb0"
 CONTROL_INFO = b"\x51\xb1"
+CONTROL_REQUEST = b"\x40\x30"
 
 DATA_FRAME_SIZE = 103
 
@@ -56,6 +67,35 @@ _MODEL_RE = re.compile(r"\(([^)]+)\)")
 def checksum(frame: bytes) -> int:
     """Return the protocol checksum for a complete frame."""
     return sum(frame[1:-2]) & 0xFF
+
+
+def logger_serial_from_frame(frame: bytes) -> int | None:
+    """Return the logger serial a frame carries, or None if it has none.
+
+    The serial sits at bytes 4-7 and is repeated at 8-11; a frame where the
+    two copies differ is not one of ours.
+    """
+    if len(frame) < 12 or frame[4:8] != frame[8:12]:
+        return None
+    return int.from_bytes(frame[4:8], "little")
+
+
+def build_request(logger_serial: int) -> bytes:
+    """Build the request the stick answers with a data frame (port 8899)."""
+    if not 0 < logger_serial <= 0xFFFFFFFF:
+        raise ValueError(f"logger serial out of range: {logger_serial}")
+    serial = logger_serial.to_bytes(4, "little")
+    payload = b"\x01\x00"
+    frame = bytearray(
+        bytes([FRAME_START, len(payload)])
+        + CONTROL_REQUEST
+        + serial * 2
+        + payload
+        + b"\x00"  # checksum, filled in below
+        + bytes([FRAME_END])
+    )
+    frame[-2] = checksum(frame)
+    return bytes(frame)
 
 
 def extract_frames(buffer: bytearray) -> tuple[list[bytes], bytearray]:

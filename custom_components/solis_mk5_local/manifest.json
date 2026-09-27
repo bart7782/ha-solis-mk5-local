@@ -1,13 +1,15 @@
 {
   "domain": "solis_mk5_local",
   "name": "Solis MK5 Local",
-  "codeowners": ["@bart7782"],
+  "codeowners": [
+    "@bart7782"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/bart7782/ha-solis-mk5-local",
   "integration_type": "device",
-  "iot_class": "local_push",
+  "iot_class": "local_polling",
   "issue_tracker": "https://github.com/bart7782/ha-solis-mk5-local/issues",
   "requirements": [],
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

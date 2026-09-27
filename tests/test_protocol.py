@@ -23,8 +23,10 @@ _spec = importlib.util.spec_from_file_location(
 protocol = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(protocol)
 
+build_request = protocol.build_request
 checksum = protocol.checksum
 extract_frames = protocol.extract_frames
+logger_serial_from_frame = protocol.logger_serial_from_frame
 is_data_frame = protocol.is_data_frame
 is_info_frame = protocol.is_info_frame
 parse_data_frame = protocol.parse_data_frame
@@ -135,6 +137,58 @@ def test_wrong_size_data_frame_rejected() -> None:
     info_frame = frames[1]
     # The 55-byte info frame is not a valid data frame layout.
     assert parse_data_frame(info_frame) is None
+
+
+# The reply to a poll on port 8899, captured on 27-09-2026 from the same stick:
+# the data frame, then an acknowledgement frame (51 f0, "DATA SEND IS OK").
+# The stick's web page is not the reference here; the reading was compared
+# with the push of the same minute instead (3214 W vs 3190 W ten seconds on).
+POLL_REPLY = (
+    "685951b0b655c824b655c8248101053030303336313031353130343032342001b507a507af"
+    "0000005a00550000008700000000094d0000000013850c8e00000000000d0726039800064a"
+    "8c0000000000000000be360401013c000001d100000000000000006916681151f0b655c824"
+    "b655c824444154412053454e44204953204f4b0d0a3116"
+)
+LOGGER_SERIAL = 617108918  # the stick's Wi-Fi network is called AP_617108918
+
+
+def test_build_request() -> None:
+    # Byte for byte the request the stick answered during the capture above.
+    assert build_request(LOGGER_SERIAL).hex() == "68024030b655c824b655c82401006116"
+    request = build_request(LOGGER_SERIAL)
+    assert checksum(request) == request[-2]
+    for bad in (0, -1, 2**32):
+        try:
+            build_request(bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"build_request({bad}) should raise")
+
+
+def test_logger_serial_from_frame() -> None:
+    frames, _ = extract_frames(bytearray(bytes.fromhex(CAPTURES[0][0])))
+    assert all(logger_serial_from_frame(f) == LOGGER_SERIAL for f in frames)
+    assert logger_serial_from_frame(build_request(LOGGER_SERIAL)) == LOGGER_SERIAL
+    assert logger_serial_from_frame(b"\x68\x00") is None
+    mismatched = bytearray(frames[0])
+    mismatched[8] ^= 0xFF
+    assert logger_serial_from_frame(bytes(mismatched)) is None
+
+
+def test_poll_reply() -> None:
+    frames, rest = extract_frames(bytearray(bytes.fromhex(POLL_REPLY)))
+    assert not rest
+    assert len(frames) == 2
+    data_frame, ack = frames
+    assert is_data_frame(data_frame)
+    assert not is_data_frame(ack) and not is_info_frame(ack)
+    assert b"DATA SEND IS OK" in ack
+    parsed = parse_data_frame(data_frame)
+    assert parsed is not None
+    assert parsed["serial"] == "000361015104024"
+    assert parsed["power"] == 3214
+    assert parsed["energy_today"] == 9.2
+    assert parsed["dc_voltage_1"] == 195.7 and parsed["dc_current_1"] == 9.0
 
 
 if __name__ == "__main__":

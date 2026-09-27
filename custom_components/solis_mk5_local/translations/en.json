@@ -20,9 +20,12 @@
     "step": {
       "init": {
         "title": "Solis MK5 Local options",
-        "description": "How long the live measurement sensors keep showing their last reading before going unavailable. The stick pushes roughly every 6 minutes, so keep this comfortably above 6. Energy totals are never affected and always keep their value.",
+        "description": "Polling asks the stick for fresh data every few seconds (TCP port 8899). It finds the stick by itself from its pushes: now {learned_host}, serial {learned_serial}. Only fill in host and serial for a stick that does not push to Home Assistant; a filled-in host is no longer followed when the stick changes address. The staleness window decides when live measurements go unavailable without any data; energy totals always keep their value.",
         "data": {
-          "stale_after_minutes": "Mark measurements unavailable after this many minutes without data"
+          "scan_interval_seconds": "Poll every this many seconds (0 = off, minimum 5)",
+          "stale_after_minutes": "Mark measurements unavailable after this many minutes without data",
+          "host": "Stick IP address (empty = learn from pushes)",
+          "logger_serial": "Stick serial number, as in its Wi-Fi name AP_<serial> (empty = learn from pushes)"
         }
       }
     }
@@ -34,19 +37,48 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "live": {
+        "name": "Live data"
+      }
+    },
     "sensor": {
-      "power": { "name": "Power" },
-      "energy_today": { "name": "Energy today" },
-      "energy_total": { "name": "Energy total" },
-      "temperature": { "name": "Inverter temperature" },
-      "ac_voltage": { "name": "Grid voltage" },
-      "ac_current": { "name": "Grid current" },
-      "ac_frequency": { "name": "Grid frequency" },
-      "dc_voltage_1": { "name": "DC voltage string 1" },
-      "dc_current_1": { "name": "DC current string 1" },
-      "dc_voltage_2": { "name": "DC voltage string 2" },
-      "dc_current_2": { "name": "DC current string 2" },
-      "last_seen": { "name": "Last update" }
+      "power": {
+        "name": "Power"
+      },
+      "energy_today": {
+        "name": "Energy today"
+      },
+      "energy_total": {
+        "name": "Energy total"
+      },
+      "temperature": {
+        "name": "Inverter temperature"
+      },
+      "ac_voltage": {
+        "name": "Grid voltage"
+      },
+      "ac_current": {
+        "name": "Grid current"
+      },
+      "ac_frequency": {
+        "name": "Grid frequency"
+      },
+      "dc_voltage_1": {
+        "name": "DC voltage string 1"
+      },
+      "dc_current_1": {
+        "name": "DC current string 1"
+      },
+      "dc_voltage_2": {
+        "name": "DC voltage string 2"
+      },
+      "dc_current_2": {
+        "name": "DC current string 2"
+      },
+      "last_seen": {
+        "name": "Last update"
+      }
     }
   }
 }

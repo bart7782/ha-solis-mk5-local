@@ -1,4 +1,4 @@
-"""TCP server that receives pushed frames from the Ginlong/Solis stick."""
+"""TCP server that receives the frames the Ginlong/Solis stick pushes."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ class SolisMk5Server:
     validated (start/end byte + checksum) before being passed on.
     """
 
-    def __init__(self, port: int, on_frame: Callable[[bytes, str], None]) -> None:
+    def __init__(self, port: int, on_frame: Callable[[bytes, str], object]) -> None:
         self._port = port
         self._on_frame = on_frame
         self._server: asyncio.Server | None = None

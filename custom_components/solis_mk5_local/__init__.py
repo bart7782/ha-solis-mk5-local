@@ -1,4 +1,4 @@
-"""Solis MK5 Local: local push integration for Ginlong/Solis stick loggers."""
+"""Solis MK5 Local: local integration for Ginlong/Solis stick loggers (poll and push)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,18 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONF_PORT, CONF_STALE_AFTER, DEFAULT_STALE_AFTER, DOMAIN, PLATFORMS
+from .const import (
+    CONF_HOST,
+    CONF_LOGGER_SERIAL,
+    CONF_PORT,
+    CONF_SCAN_INTERVAL,
+    CONF_STALE_AFTER,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_STALE_AFTER,
+    DOMAIN,
+    MIN_SCAN_INTERVAL,
+    PLATFORMS,
+)
 from .coordinator import SolisMk5Coordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,10 +31,20 @@ type SolisMk5ConfigEntry = ConfigEntry[SolisMk5Coordinator]
 
 async def async_setup_entry(hass: HomeAssistant, entry: SolisMk5ConfigEntry) -> bool:
     port: int = entry.data[CONF_PORT]
-    stale_minutes: int = entry.options.get(CONF_STALE_AFTER, DEFAULT_STALE_AFTER)
+    options = entry.options
+    stale_minutes: int = options.get(CONF_STALE_AFTER, DEFAULT_STALE_AFTER)
+    scan_interval: int = options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    if 0 < scan_interval < MIN_SCAN_INTERVAL:
+        scan_interval = MIN_SCAN_INTERVAL
 
     coordinator = SolisMk5Coordinator(
-        hass, entry, port, timedelta(minutes=stale_minutes)
+        hass,
+        entry,
+        port,
+        timedelta(minutes=stale_minutes),
+        scan_interval,
+        options.get(CONF_HOST) or None,
+        options.get(CONF_LOGGER_SERIAL) or None,
     )
     try:
         await coordinator.async_start()
@@ -33,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SolisMk5ConfigEntry) -> 
     entry.runtime_data = coordinator
 
     # Register the device up front so entities exist right after a restart
-    # (before the stick's first push); enrich it once real data arrives.
+    # (before the first frame arrives); enrich it once real data arrives.
     device_registry = dr.async_get(hass)
     device = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -70,5 +91,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: SolisMk5ConfigEntry) ->
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload the entry when options (port, stale window) change."""
+    """Reload the entry when its options change."""
     await hass.config_entries.async_reload(entry.entry_id)

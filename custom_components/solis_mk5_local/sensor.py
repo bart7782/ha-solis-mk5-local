@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from time import monotonic
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -20,13 +21,13 @@ from homeassistant.const import (
     UnitOfPower,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SolisMk5ConfigEntry
-from .const import DOMAIN
+from .const import DIAGNOSTIC_MIN_INTERVAL, DOMAIN
 from .coordinator import SolisMk5Coordinator
 
 
@@ -38,9 +39,12 @@ class SolisMk5SensorDescription(SensorEntityDescription):
     # overnight; live measurements do not and go unavailable when stale.
     stays_available: bool = False
     # Restore the last value after a Home Assistant restart (before the
-    # stick's first push, which can take ~6 minutes or all night).
+    # stick's first frame, which can take all night).
     restore: bool = False
-    expose_raw: bool = False
+    # Write at most once per DIAGNOSTIC_MIN_INTERVAL; see const.py.
+    throttled: bool = False
+    # Show where the newest frame came from (poll or push) as an attribute.
+    expose_source: bool = False
 
 
 SENSORS: tuple[SolisMk5SensorDescription, ...] = (
@@ -77,6 +81,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="ac_voltage",
@@ -84,6 +89,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="ac_current",
@@ -92,6 +98,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="ac_frequency",
@@ -100,6 +107,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfFrequency.HERTZ,
         entity_category=EntityCategory.DIAGNOSTIC,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="dc_voltage_1",
@@ -108,6 +116,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="dc_current_1",
@@ -116,6 +125,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="dc_voltage_2",
@@ -124,6 +134,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="dc_current_2",
@@ -132,6 +143,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        throttled=True,
     ),
     SolisMk5SensorDescription(
         key="last_seen",
@@ -140,7 +152,7 @@ SENSORS: tuple[SolisMk5SensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         stays_available=True,
         restore=True,
-        expose_raw=True,
+        expose_source=True,
     ),
 )
 
@@ -157,7 +169,7 @@ async def async_setup_entry(
 
 
 class SolisMk5Sensor(CoordinatorEntity[SolisMk5Coordinator], RestoreSensor):
-    """A sensor fed by frames the stick pushes to the local server."""
+    """A sensor fed by the frames of the stick, polled or pushed."""
 
     entity_description: SolisMk5SensorDescription
     _attr_has_entity_name = True
@@ -173,6 +185,8 @@ class SolisMk5Sensor(CoordinatorEntity[SolisMk5Coordinator], RestoreSensor):
         self._attr_unique_id = f"{entry.entry_id}-{description.key}"
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.entry_id)})
         self._restored_value: datetime | float | int | None = None
+        self._last_write: float | None = None
+        self._last_written_available: bool | None = None
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -180,6 +194,24 @@ class SolisMk5Sensor(CoordinatorEntity[SolisMk5Coordinator], RestoreSensor):
             return
         if (last := await self.async_get_last_sensor_data()) is not None:
             self._restored_value = last.native_value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Write the new state, unless this sensor is throttled and wrote recently.
+
+        A change in availability is always written straight away.
+        """
+        available = self.available
+        if (
+            self.entity_description.throttled
+            and self._last_write is not None
+            and available == self._last_written_available
+            and monotonic() - self._last_write < DIAGNOSTIC_MIN_INTERVAL
+        ):
+            return
+        self._last_write = monotonic()
+        self._last_written_available = available
+        super()._handle_coordinator_update()
 
     @property
     def _live_value(self) -> datetime | float | int | None:
@@ -199,8 +231,8 @@ class SolisMk5Sensor(CoordinatorEntity[SolisMk5Coordinator], RestoreSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, str] | None:
-        if not self.entity_description.expose_raw:
+        if not self.entity_description.expose_source:
             return None
-        if raw := (self.coordinator.data or {}).get("raw_hex"):
-            return {"raw_frame_hex": raw}
+        if source := self.coordinator.last_source:
+            return {"source": source}
         return None

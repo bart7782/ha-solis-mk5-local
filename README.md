@@ -6,10 +6,10 @@
 > repositories as a starting point (see Credits below).
 
 Local Home Assistant integration for Solis/Ginlong inverters with a Wi-Fi
-stick logger. The stick sends its data directly (over TCP) to Home
-Assistant — **no cloud, no polling, no extra hardware**. You use a free
-"Remote Server" slot on the stick for this, so the Solis cloud and app keep
-working as usual through the existing slot.
+stick logger — **no cloud, no extra hardware**. Home Assistant asks the
+stick for fresh data every 10 seconds, and the stick also pushes its data to
+Home Assistant every ~6 minutes through a free "Remote Server" slot. The
+Solis cloud and app keep working as usual through their own slot.
 
 The protocol was reverse-engineered from raw captures of a stick with
 hardware `GL17-07-261-D` and firmware `H4.01.51`; all field positions have
@@ -37,9 +37,35 @@ this integration exposes:
 | Inverter temperature | °C | |
 | Grid voltage / grid current / grid frequency | V / A / Hz | diagnostic |
 | DC voltage and current string 1 and 2 | V / A | per MPPT string, diagnostic |
-| Last update | timestamp | with the raw hex of the last frame as attribute |
+| Last update | timestamp | with `source` (`poll` or `push`) as attribute |
+| Live data | on/off | on while the newest reading is at most 90 s old |
 
-The data is pushed by the stick approximately every 6 minutes.
+Power, the energy totals and "Last update" change with every reading (every
+10 seconds while polling works). The diagnostic readings (temperature, grid
+and string values) are written at most once a minute: they change on nearly
+every reading, and at full speed they would add some 40,000 database rows a
+day at a resolution nobody needs.
+
+"Live data" is meant for automations that act on solar power, such as
+switching on a load when there is a surplus: only trust the power reading
+while it is on.
+
+## How the data arrives
+
+- **Polling (main source).** Every 10 seconds Home Assistant asks the stick
+  for its current data on TCP port 8899. On the reference stick the answer
+  held new values on every request, and arrived in ~0.3 s. For about 20
+  seconds, starting half a minute after each of its own pushes, the stick
+  does not answer; the integration simply keeps the previous reading. When
+  the stick switches off with the inverter at night, polling slows down to
+  once every 5 minutes until the stick is back.
+- **Push (fallback, and how the stick is found).** The stick's own push
+  still arrives every ~6 minutes. Every push carries the stick's serial
+  number and comes from its current IP address, which is all polling needs.
+  So there is nothing to configure: polling starts at the first push, and
+  when the stick gets a new IP address, the next push tells the integration.
+  If polling ever stops working, the push keeps the sensors going (at the
+  old ~6 minute pace).
 
 ## Installation via HACS
 
@@ -70,14 +96,28 @@ repository:
    - IP address: the IP address of your Home Assistant server
    - Port: the same port as in step 2
    - Connection: TCP
-4. Save and restart the logger. Data will appear within ~6 minutes.
+4. Save and restart the logger. Data will appear within ~6 minutes, and
+   every 10 seconds from then on.
 
 > **Running Home Assistant in Docker?** The chosen port must be published to
 > the host (e.g. `-p 5657:5657`) or the stick cannot reach it. Home Assistant
 > OS and Supervised installs need no extra step.
 
-Via "Options" on the integration you can configure after how many minutes
-of silence the measurement sensors are marked "unavailable" (default 30).
+Via "Options" on the integration you can set:
+
+- **Poll interval** in seconds (default 10, 0 switches polling off, minimum 5).
+- **Staleness window**: after how many minutes without any data the
+  measurement sensors are marked "unavailable" (default 30, so the push
+  alone can still carry them).
+- **Stick IP address and serial number**: only for a stick that does not
+  push to Home Assistant. The serial is the number in the stick's own Wi-Fi
+  network name (`AP_<serial>`). Leave both empty when the push is set up: a
+  filled-in IP address is not followed when the stick moves to a new one.
+  The form shows what the integration learned from the pushes.
+
+Give the stick a fixed IP address (a DHCP reservation in your router) if you
+can. It is not required, but it avoids a few minutes without polling after
+an address change.
 
 ## Troubleshooting
 
@@ -94,7 +134,14 @@ of silence the measurement sensors are marked "unavailable" (default 30).
    port is published (see the note above).
 4. **Logger restarted?** Some loggers only apply Remote Server changes after a
    reboot. Restart it (or power-cycle the inverter) and wait ~6 minutes.
-5. **Still nothing?** Enable debug logging (below) and look for
+5. **Only every ~6 minutes, not every 10 seconds?** Then polling does not
+   work. Download the diagnostics (Settings > Devices & services > Solis MK5
+   Local > three dots > Download diagnostics) and look at `poll_target` and
+   `poll_stats`. `poll_target` empty: no push has arrived yet since the
+   integration started, and no IP address and serial are set in the options.
+   Many unanswered polls: check that TCP port 8899 of the stick is reachable
+   from Home Assistant.
+6. **Still nothing?** Enable debug logging (below) and look for
    "Connection opened from ..." lines. If you see connections but no parsed
    data, the logger likely speaks a different protocol variant — please open
    an issue using the "Unsupported logger" template.
@@ -117,8 +164,9 @@ That's fixable with a few captured frames:
 
 - **At night** the inverter powers off and the stick stops sending. The
   measurement sensors (power, voltages, currents) then become
-  "unavailable"; the energy sensors keep their last value and also survive
-  a Home Assistant restart.
+  "unavailable" after the staleness window; the energy sensors keep their
+  last value and also survive a Home Assistant restart. "Live data" goes
+  off 90 seconds after the last reading.
 - **Energy Dashboard**: use "Yield today" or "Yield total" as your solar
   production source.
 - **Example dashboard**: [`examples/solar-dashboard.yaml`](examples/solar-dashboard.yaml)
@@ -158,13 +206,21 @@ checksum = sum of all bytes after the start byte modulo 256):
 - an **info frame** of 55 bytes (control code `51 b1`) with the firmware
   versions and the hardware model as ASCII.
 
+It also answers a 16-byte request on TCP port 8899,
+`68 02 40 30 <serial x2> 01 00 <checksum> 16`, with the same data frame and a
+short acknowledgement frame (`51 f0`, "DATA SEND IS OK"). The serial is the
+logger's serial number as a 32-bit little-endian number, the same one that
+sits at bytes 4-11 of every frame it sends.
+
 The full byte map is documented in
 [`protocol.py`](custom_components/solis_mk5_local/protocol.py), and
 [`tests/test_protocol.py`](tests/test_protocol.py) contains real captures
-with their expected values. Tests run without Home Assistant:
+with their expected values; [`tests/test_poller.py`](tests/test_poller.py)
+runs the poller against a fake stick. Tests run without Home Assistant:
 
 ```
 python tests/test_protocol.py
+python tests/test_poller.py
 ```
 
 ## Credits
